@@ -1,5 +1,5 @@
 /*
-Config.h - Include file for class "Config".
+LoadHandle.h - Include file for class "LoadHandle".
 Copyright (C) 2025  by Stefan Andres
 
 This program is free software,   // you can redistribute it and/or modify
@@ -21,19 +21,51 @@ along with this program.  If not, see <https,   ////www.gnu.org/licenses/>.
 #include <Arduino.h>
 #include "HX711.h"
 
-class LoadHandle {
+class LoadHandle
+{
 
-    public:
-     LoadHandle(byte FrontCell_DOUT_PIN, byte FrontCell_SCK_PIN,byte RearCell_DOUT_PIN, byte RearCell_SCK_PIN );
-     void begin(float scaleFront, float scaleRear);
-     boolean resetFront();                // Reset for Calibrate
-     float calibrateFront(float weight);  // return factor 
-     boolean resetFront();               // Reset for Calibrate
-     float calibrateRear(float weight);  // return factor
-     boolean setTare();
-     boolean getCG(float cg, float weight, float weightFront, float weightRear);
+public:
+    LoadHandle();
+    void begin(); // take parameter from EEPROM
+    void setCellPins(byte FrontCell_DOUT_PIN, byte FrontCell_SCK_PIN, 
+                     byte RearCell_DOUT_PIN, byte RearCell_SCK_PIN); // + set parameter to  EEPROM
+    void resetCells();
 
+    void loop();
+
+    void resetFront();               // Reset for calibrating
+    void calibrateFront(float weight); // Set factor to EEPROM & return factor
+    void resetRear();                // Reset for calibrating
+    void calibrateRear(float weight);  // Set factor to EEPROM & return factor
+
+    // getter & setter functions
+
+    void setDistance(float distanceGPs,float distanceWingToGP);
+    
+    byte FrontCell_DOUT_PIN;
+    byte FrontCell_SCK_PIN;
+    byte RearCell_DOUT_PIN;
+    byte RearCell_SCK_PIN;
+    float distanceGPs; 
+    float distanceWingToGP;
+    float FrontCell_scale;
+    float RearCell_scale;
+
+    float CenterOfGravity;
+    float FrontWeight;
+    float RearWeight;
+    float totalWeight;
+    
+
+private: 
+    
+    HX711 FrontCell;
+    HX711 RearCell;
+    float FrontCell_scaleZ;
+    float RearCell_scaleZ;
+
+   
+    
 };
-
 
 #endif

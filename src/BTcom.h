@@ -32,20 +32,22 @@ class BTcom
 {
  private:
   BluetoothSerial SerialBT;
-  void send(String name, float f);
+  String inString;
+  String name;
+  String value;
+  boolean availible;
+
+  void execStr(String s);
  public:
   BTcom();
   void begin();
   void loop();
-  void sendWeightFront(float weight); // in g
-  void sendWeightRear(float weight);  // in g
-  void sendWeight(float weight);  // WeightFront+WeightRear in g
-  void sendCG(float cg); // in mm
-  void sendHX711Voltage(float voltage);
-  void getCalibrationWeigtFront(float weight);
-  void getCalibrationWeigtRear(float weight);
-  boolean doCalibrationWeigtFront();
-  boolean doCalibrationWeigtRear();
+  void send(String name, float f);
+  void send(String name, byte b);
+  void send(String name, String s);
+  boolean isAvailible();
+  boolean isConnected();
+  boolean readData(String *name, String *value);
 };
 
 #endif

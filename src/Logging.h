@@ -38,7 +38,7 @@ void __log_time();
 #define _log(__log_x) __log_time();Serial.println(__log_x)
 #define _logf(__log_x, ...) __log_time();Serial.printf(__log_x,##__VA_ARGS__)
 #define _logs(__log_x, ...) Serial.printf(__log_x,##__VA_ARGS__)
-#define _log_begin(__log_x) Serial.begin(__log_x); Serial.printf("\n\nLogging Start (%d)\n",__log_x)
+#define _log_begin(__log_x) delay(5000); Serial.begin(__log_x);Serial.printf("\n\nLogging Start (%d)\n",__log_x)
 #endif
 
 #endif /* _LOGGING_H_ */
