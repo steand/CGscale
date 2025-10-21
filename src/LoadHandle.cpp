@@ -19,32 +19,49 @@ along with this program.  If not, see <https,   ////www.gnu.org/licenses/>.
 #include <EEPROM.h>
 #include "Logging.h"
 
-#define FrontCell_DOUT_PIN_POS 1
-#define FrontCell_SCK_PIN_POS 2
-#define RearCell_DOUT_PIN_POS 3
-#define RearCell_SCK_PIN_POS 4
-#define FrontCell_scale_POS 5  // float 
-#define RearCell_scale_POS 9   // float
+#define FrontCell_DOUT_PIN 23
+#define FrontCell_SCK_PIN 5
 
+#define RearCell_DOUT_PIN 18
+#define RearCell_SCK_PIN 19
+
+#define FrontCell_scale_POS 1   // float
+#define RearCell_scale_POS 5    // float
+#define distanceGPs_POS 9       // float
+#define distanceWingToGP_POS 13 // float
 #define EEPROM_SIZE 32
 
 #define unitReadingTimes 5
 
-LoadHandle::LoadHandle()
-{
-    EEPROM.begin(EEPROM_SIZE);
-}
+LoadHandle::LoadHandle() {}
 
 void LoadHandle::begin()
 {
-    FrontCell_DOUT_PIN=EEPROM.readByte(FrontCell_DOUT_PIN_POS);
-    FrontCell_SCK_PIN=EEPROM.readByte(FrontCell_SCK_PIN_POS);
-    RearCell_DOUT_PIN=EEPROM.readByte(RearCell_DOUT_PIN_POS);
-    RearCell_SCK_PIN=EEPROM.readByte(RearCell_SCK_PIN_POS);
-    FrontCell_scale=EEPROM.readFloat(FrontCell_scale_POS);
-    if (FrontCell_scale == 0.0f) FrontCell_scale=1.0f;
-    RearCell_scale=EEPROM.readFloat(RearCell_scale_POS);
-    if (RearCell_scale == 0.0f) RearCell_scale=1.0f;
+    if (EEPROM.begin(64))
+    {
+        _log("EEPROM startet.");
+    }
+    else
+    {
+        _log("EEPROM init fail");
+    }
+    FrontCell_scale = EEPROM.readFloat(FrontCell_scale_POS);
+    if (isnan(FrontCell_scale))
+        FrontCell_scale = 1.0F;
+    RearCell_scale = EEPROM.readFloat(RearCell_scale_POS);
+    if (isnan(RearCell_scale))
+        RearCell_scale = 1.0F;
+    distanceGPs = EEPROM.readFloat(distanceGPs_POS);
+    if (isnan(distanceGPs))
+        distanceGPs = 30.0F;
+    distanceWingToGP = EEPROM.readFloat(distanceWingToGP_POS);
+    if (isnan(distanceWingToGP))
+        distanceWingToGP = 160.0F;
+    _log(distanceWingToGP);
+
+    FrontCell.begin(FrontCell_DOUT_PIN, FrontCell_SCK_PIN);
+    RearCell.begin(RearCell_DOUT_PIN, RearCell_SCK_PIN);
+
     resetCells();
 }
 
@@ -53,55 +70,43 @@ void LoadHandle::loop()
     this->FrontWeight = FrontCell.get_units(unitReadingTimes);
     this->RearWeight = RearCell.get_units(unitReadingTimes);
     this->totalWeight = this->FrontWeight + this->RearWeight;
-    this->CenterOfGravity = ((distanceGPs*RearWeight)/totalWeight) + distanceWingToGP;
+    if (this->totalWeight > 0)
+        this->CenterOfGravity = ((distanceGPs * RearWeight) / totalWeight) + distanceWingToGP;
+    else
+        this->CenterOfGravity = 0.0F;
 }
 
 void LoadHandle::resetFront()
 {
     FrontCell.set_scale();
     FrontCell.tare();
-    this->FrontCell_scaleZ=FrontCell.get_units(10);
+    this->FrontCell_scaleZ = FrontCell.get_units(10);
 }
 
 void LoadHandle::calibrateFront(float weight)
 {
-    FrontCell_scale = FrontCell_scaleZ/FrontCell.get_units(10);
-    EEPROM.writeFloat(FrontCell_scale_POS,FrontCell_scale);
+    FrontCell_scale = FrontCell_scaleZ / FrontCell.get_units(10);
+    EEPROM.writeFloat(FrontCell_scale_POS, FrontCell_scale);
     FrontCell.set_scale(FrontCell_scale);
-
 }
 
 void LoadHandle::resetRear()
 {
     RearCell.set_scale();
     RearCell.tare();
-    this->RearCell_scaleZ=RearCell.get_units(10);
+    this->RearCell_scaleZ = RearCell.get_units(10);
 }
 
 void LoadHandle::calibrateRear(float weight)
 {
-    RearCell_scale = RearCell_scaleZ/RearCell.get_units(10);
-    EEPROM.writeFloat(RearCell_scale_POS,RearCell_scale);
+    RearCell_scale = RearCell_scaleZ / RearCell.get_units(10);
+    EEPROM.writeFloat(RearCell_scale_POS, RearCell_scale);
     FrontCell.set_scale(RearCell_scale);
-
 }
-
-void LoadHandle::setCellPins(byte FrontCell_DOUT_PIN, byte FrontCell_SCK_PIN, 
-                             byte RearCell_DOUT_PIN, byte RearCell_SCK_PIN)
-{
-    FrontCell_DOUT_PIN=FrontCell_DOUT_PIN; EEPROM.writeByte(FrontCell_DOUT_PIN_POS,FrontCell_DOUT_PIN);
-    FrontCell_SCK_PIN=FrontCell_SCK_PIN; EEPROM.writeByte(FrontCell_SCK_PIN_POS,FrontCell_SCK_PIN);
-    RearCell_DOUT_PIN=RearCell_DOUT_PIN; EEPROM.writeByte(RearCell_DOUT_PIN_POS,RearCell_DOUT_PIN);
-    RearCell_SCK_PIN=RearCell_SCK_PIN; EEPROM.writeByte(RearCell_SCK_PIN_POS,RearCell_SCK_PIN);
-    resetCells();
-}
-
 
 void LoadHandle::resetCells()
-{   
-    FrontCell.begin(FrontCell_DOUT_PIN, FrontCell_SCK_PIN);
-    RearCell.begin(RearCell_DOUT_PIN,RearCell_SCK_PIN);
- 
+{
+
     if (FrontCell.is_ready())
     {
         _log("load Frontcell: set_scale, tare");
@@ -126,9 +131,9 @@ void LoadHandle::resetCells()
 
 void LoadHandle::setDistance(float distanceGPs, float distanceWingToGP)
 {
-    this->distanceGPs=distanceGPs;
-    this->distanceWingToGP=distanceWingToGP;
+    this->distanceGPs = distanceGPs;
+    EEPROM.writeFloat(distanceGPs_POS, distanceGPs);
+    this->distanceWingToGP = distanceWingToGP;
+    EEPROM.writeFloat(distanceWingToGP_POS, distanceWingToGP);
+    EEPROM.commit();
 }
-
-
-

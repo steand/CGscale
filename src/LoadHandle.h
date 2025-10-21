@@ -27,26 +27,24 @@ class LoadHandle
 public:
     LoadHandle();
     void begin(); // take parameter from EEPROM
-    void setCellPins(byte FrontCell_DOUT_PIN, byte FrontCell_SCK_PIN, 
-                     byte RearCell_DOUT_PIN, byte RearCell_SCK_PIN); // + set parameter to  EEPROM
     void resetCells();
 
     void loop();
 
-    void resetFront();               // Reset for calibrating
+    void resetFront();                 // Reset for calibrating
     void calibrateFront(float weight); // Set factor to EEPROM & return factor
-    void resetRear();                // Reset for calibrating
+    void resetRear();                  // Reset for calibrating
     void calibrateRear(float weight);  // Set factor to EEPROM & return factor
 
     // getter & setter functions
 
-    void setDistance(float distanceGPs,float distanceWingToGP);
-    
+    void setDistance(float distanceGPs, float distanceWingToGP);
+
     byte FrontCell_DOUT_PIN;
     byte FrontCell_SCK_PIN;
     byte RearCell_DOUT_PIN;
     byte RearCell_SCK_PIN;
-    float distanceGPs; 
+    float distanceGPs;
     float distanceWingToGP;
     float FrontCell_scale;
     float RearCell_scale;
@@ -55,17 +53,12 @@ public:
     float FrontWeight;
     float RearWeight;
     float totalWeight;
-    
 
-private: 
-    
+private:
     HX711 FrontCell;
     HX711 RearCell;
     float FrontCell_scaleZ;
     float RearCell_scaleZ;
-
-   
-    
 };
 
 #endif

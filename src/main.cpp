@@ -23,95 +23,86 @@ along with this program.  If not, see <https,   ////www.gnu.org/licenses/>.
 #include "LoadHandle.h"
 #include "BTcom.h"
 
-/*
-#define FrontCell_DOUT_PIN 23
-#define FrontCell_SCK_PIN  5
-
-#define RearCell_DOUT_PIN 18
-#define RearCell_SCK_PIN 19
-*/
-
 LoadHandle Cells;
 BTcom Bt;
 
-void setup() {
-  _log_begin(115200);
-  Bt.begin();
-  Cells.begin();
-}
-
-void sendCoG() {
-  Bt.send("CoG",Cells.CenterOfGravity);
-  Bt.send("FrontWeight",Cells.FrontWeight);
-  Bt.send("ReartWeight",Cells.RearWeight);
-  Bt.send("totalWeight",Cells.totalWeight);
+void sendCoG()
+{
+  String s = String(Cells.FrontWeight, 0) + "," + String(Cells.RearWeight, 0) + "," +
+             String(Cells.totalWeight, 0) + "," + String(Cells.CenterOfGravity, 1);
+  Bt.send("CoG", s);
 }
 
 void sendConfig()
 {
-  Bt.send("FrontCellPinDout", Cells.FrontCell_DOUT_PIN);
-  Bt.send("FrontCellPinSCK", Cells.FrontCell_SCK_PIN);
-  Bt.send("RearCellPinDout", Cells.RearCell_DOUT_PIN);
-  Bt.send("RearCellPinSCK", Cells.RearCell_SCK_PIN);
-  Bt.send("distanceGPs", Cells.distanceGPs);
-  Bt.send("distanceWingToGP", Cells.distanceWingToGP);
+  String s = String(Cells.distanceGPs, 1) + "," +
+             String(Cells.distanceWingToGP, 1);
+  _logf("Send config %s \n", s.c_str());
+  Bt.send("config", s);
 }
 
-String getParameter(String *s) {
-    String ls = *s;
-    String rs;
-    ls.substring(0,ls.indexOf(",")-1);
-    rs = ls;
-    ls.remove(0,ls.indexOf(","));
-    *s = ls; 
-    return ls;
+String getParameter(String *inStr)
+{
+  String s;
+  int pos = inStr->indexOf(',');
+  if (pos >= 0)
+  {
+    s = inStr->substring(0, pos);
+    inStr->remove(0, pos + 1);
+  }
+  else
+  {
+    s = *inStr;
+  }
+  return s;
 }
 
-void setConfig(String value) {
-  _logf("setConfig %s \n", value);
-  Cells.FrontCell_DOUT_PIN = getParameter(&value).toInt();
-  Cells.FrontCell_SCK_PIN = getParameter(&value).toInt();
-  Cells.RearCell_DOUT_PIN = getParameter(&value).toInt();
-  Cells.RearCell_SCK_PIN = getParameter(&value).toInt();
-  Cells.distanceGPs = getParameter(&value).toFloat();
-  Cells.distanceWingToGP = getParameter(&value).toFloat();
+void setDistance(String value)
+{
+  _logf("setDistance: %s \n", value.c_str());
+  float distanceGPs = getParameter(&value).toFloat();
+  float distanceWingToGP = getParameter(&value).toFloat();
+  Cells.setDistance(distanceGPs, distanceWingToGP);
 }
 
 void setData()
 {
   String name;
   String value;
+  _log("Set Data");
   if (Bt.readData(&name, &value))
   {
+    _logf("Read Data Name: %s | Value: %s \n", name.c_str(), value.c_str());
     if (name == "getConfig")
     {
+
       sendConfig();
       return;
     }
-    if (name == "setConfig")
+    if (name == "setDistance")
     {
-      setConfig(value);
+      setDistance(value);
       return;
     }
 
-  if (name == "ResetFrontCell")
+    if (name == "resetFrontCell")
     {
       Cells.resetFront();
       return;
     }
-  if (name == "ResetRearCell")
+    if (name == "resetRearCell")
     {
       Cells.resetRear();
       return;
     }
 
-    if (name == "CalibrateFrontCell")
+    if (name == "calibrateFrontCell")
     {
       Cells.calibrateFront(value.toFloat());
       return;
     }
 
-     if (name == "CalibrateRearCell")
+    if (name == "calibrateRearCell")
     {
       Cells.calibrateRear(value.toFloat());
       return;
@@ -122,20 +113,37 @@ void setData()
       Cells.resetCells();
       return;
     }
-
   }
 }
 
-  long looptime = millis();
-  void loop()
-  {
+void setup()
+{
+  delay(10000);
+  _log_begin(115200);
+  Bt.begin();
+  Cells.begin();
+  _log("main setup finished");
+}
 
-    if ((millis() - looptime > 5000) && Bt.isConnected())
+long looptime = millis();
+void loop()
+{
+
+  if ((millis() - looptime > 5000))
+  {
+    if (Bt.isConnected())
     {
+      _log("Main loop");
       Cells.loop();
       sendCoG();
-      looptime = millis();
     }
-    if (Bt.isAvailible())
-      setData();
+    else
+    {
+      _log("Main loop - BT disconect ");
+    }
+    looptime = millis();
   }
+  Bt.loop();
+  if (Bt.isAvailible())
+    setData();
+}
