@@ -53,10 +53,10 @@ void LoadHandle::begin()
         RearCell_scale = 1.0F;
     distanceGPs = EEPROM.readFloat(distanceGPs_POS);
     if (isnan(distanceGPs))
-        distanceGPs = 30.0F;
+        distanceGPs = 180.0F;
     distanceWingToGP = EEPROM.readFloat(distanceWingToGP_POS);
     if (isnan(distanceWingToGP))
-        distanceWingToGP = 160.0F;
+        distanceWingToGP = 30.0F;
     _log(distanceWingToGP);
 
     FrontCell.begin(FrontCell_DOUT_PIN, FrontCell_SCK_PIN);
@@ -70,10 +70,13 @@ void LoadHandle::loop()
     this->FrontWeight = FrontCell.get_units(unitReadingTimes);
     this->RearWeight = RearCell.get_units(unitReadingTimes);
     this->totalWeight = this->FrontWeight + this->RearWeight;
+    _logf("CoG in loop  FW : %f RW %f tW %f CoG: %f \n", FrontWeight, RearWeight, totalWeight, CenterOfGravity );
     if (this->totalWeight > 0)
         this->CenterOfGravity = ((distanceGPs * RearWeight) / totalWeight) + distanceWingToGP;
     else
         this->CenterOfGravity = 0.0F;
+    _logf("CoG in loop  FW : %f RW %f tW %f CoG: %f \n", FrontWeight, RearWeight, totalWeight, CenterOfGravity );
+    _logf("             distGP %f, distWing %f \n",distanceGPs,distanceWingToGP);
 }
 
 void LoadHandle::resetFront()
@@ -85,9 +88,12 @@ void LoadHandle::resetFront()
 
 void LoadHandle::calibrateFront(float weight)
 {
-    FrontCell_scale = FrontCell_scaleZ / FrontCell.get_units(10);
+    float f = FrontCell.get_units(10);
+    FrontCell_scale = f/weight;
     EEPROM.writeFloat(FrontCell_scale_POS, FrontCell_scale);
+    EEPROM.commit();
     FrontCell.set_scale(FrontCell_scale);
+    _logf("Front Calib. scaleZ: %f unit: %f scale: %f \n",FrontCell_scale, f, FrontCell_scale );
 }
 
 void LoadHandle::resetRear()
@@ -99,8 +105,9 @@ void LoadHandle::resetRear()
 
 void LoadHandle::calibrateRear(float weight)
 {
-    RearCell_scale = RearCell_scaleZ / RearCell.get_units(10);
+    RearCell_scale = RearCell.get_units(10)/weight;
     EEPROM.writeFloat(RearCell_scale_POS, RearCell_scale);
+    EEPROM.commit();
     FrontCell.set_scale(RearCell_scale);
 }
 
